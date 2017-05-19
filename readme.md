@@ -1,6 +1,6 @@
 # Installation
 
-Copy into `/www/cgi-bin/vclient/` on an OpenWRT router which has the `vclient` utility installed.
+Copy into `/www/cgi-bin/vclient/` on an OpenWRT router which [has the `vclient` utility installed](https://github.com/probonopd/vcontrold-for-openwrt).
 
 Access at `http://<ip_address>/cgi-bin/vclient/api/v1/<command_name>`,
 e.g. `http://10.0.0.1/cgi-bin/vclient/api/v1/system` or
