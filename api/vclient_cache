@@ -1,0 +1,22 @@
+#!/usr/bin/env lua
+
+
+dofile(arg[0]:gsub('[^/]+$', 'helpers.lua'))
+dofile(arg[0]:gsub('[^/]+$', 'functions.lua'))
+
+
+function cacher()
+
+  while true do
+    commands = get_config().commands
+    for _, command in pairs(commands) do
+      if command.type == 'getaddr' then
+        cache(command, true)
+      end
+    end
+  end
+
+end
+
+
+cacher()

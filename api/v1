@@ -1,0 +1,115 @@
+#!/usr/bin/env lua
+
+print('Content-type: application/json; charset=utf-8\n')
+
+json = require('dkjson')
+
+dofile(arg[0]:gsub('[^/]+$', 'helpers.lua'))
+dofile(arg[0]:gsub('[^/]+$', 'functions.lua'))
+
+
+function vclient(command, format)
+
+  local result = cache(command).result
+
+  result = string.gsub(result, '[\t\ ]+', ' ')
+
+  result = tonumber(result) or result
+
+  result = time_to_iso(result)
+  result = timer_to_table(result)
+  result = error_to_table(result)
+
+  return result
+
+end
+
+
+function get_command_hierarchy(cmd, commands)
+
+  local result = {}
+  local param = (#url_param)
+  local already_found = {}
+
+  repeat
+    for key, value in pairs(commands) do
+      if string.match(key, cmd) then
+        local sub_command = string.gsub(key, string.format('^(%s_[^_]+).*', cmd),'%1')
+
+        if not already_found[sub_command] then
+
+          local resultkey = string.gsub(sub_command, string.format('^%s_?', cmd),'')
+          result[resultkey] = get_matching_commands(sub_command, commands)
+
+          if resultkey == '' then
+            result = result[resultkey]
+          end
+
+          already_found[sub_command] = true
+        end
+
+        already_found[cmd] = true
+      end
+    end
+
+    if not already_found[cmd] then
+      cmd = string.gsub(cmd, string.format('_?%s$', url_param[param]), '')
+      param = param - 1
+    end
+  until (already_found[cmd] or param == 1)
+
+  if param ~= #url_param then
+
+    i=param
+    while i < #url_param do
+      i = i + 1
+      result = result[url_param[i]]
+    end
+
+  end
+
+  return result
+
+end
+
+
+function get_matching_commands(cmd, commands)
+
+  local result = {}
+
+  if cmd == 'commands' then
+    result = commands
+  elseif commands[cmd] then
+    result = vclient(commands[cmd])
+  else
+    result = get_command_hierarchy(cmd, commands)
+  end
+
+  return result
+
+end
+
+
+
+
+QUERY_STRING = query_string(os.getenv('QUERY_STRING'))
+
+
+url = os.getenv('PATH_INFO'):gsub('^/', '')
+url_param = split(url, '/')
+underscored_url = url:gsub('/', '_')
+
+
+if underscored_url == 'commands' then
+  command_by_url = url
+elseif QUERY_STRING['set'] then
+  command_by_url = string.format('set_%s', underscored_url)
+else
+  command_by_url = string.format('get_%s', underscored_url)
+end
+
+
+result = get_matching_commands(command_by_url, get_config().commands)
+
+
+print(json.encode(result))
